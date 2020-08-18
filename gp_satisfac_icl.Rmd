@@ -1,0 +1,163 @@
+---
+title: "GP satisfaction and ICL"
+author: "David Henderson"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: journal
+    highlight: haddock
+    df_print: paged
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.width = 12, fig.height = 9,
+                      warning = FALSE, message = FALSE)
+```
+
+# Introduction
+
+## Software
+
+```{r, warning=FALSE, message=FALSE}
+library(here)
+library(tidyverse)
+library(foreign)
+library(forcats)
+library(phsmethods)
+library(ggthemes)
+
+#Helper function
+`%nin%` <- negate(`%in%`)
+
+#Short cut for csv output with html tables
+my_datatable <- function(x){
+  DT::datatable(x, extensions = "Buttons", options = list(dom = "Bfrtip", 
+                                                          buttons = c("csv")))
+}
+
+#Baseline plot settings
+theme_set(theme_minimal(base_family = "Roboto", base_size = 20) +
+            theme(panel.grid.minor = element_blank(),
+                  axis.title.y = element_text(margin = margin(0, 20, 0, 0)),
+                  axis.title.x = element_text(margin = margin(20, 0, 0, 0)),
+                  plot.caption = element_text(colour = "#AAAAAA"),
+                  plot.margin = margin(3,15,3,3,"mm")))
+
+#global options for scientific numbers and significant digits.          
+options(scipen = 10,
+        digits = 1)
+```
+
+## Data
+
+```{r}
+gps <- read.spss("data/2018 GP Survey_Martin.sav", to.data.frame = TRUE)
+```
+
+
+# Plots
+
+```{r}
+gps
+```
+
+
+
+```{r}
+gps %>% 
+  select(pressInsufTime, H_LDepbin) %>% 
+  group_by(H_LDepbin) %>% 
+  count(pressInsufTime) %>% 
+  filter(!is.na(H_LDepbin) & !is.na(pressInsufTime)) %>% 
+  mutate(pct = n/sum(n)*100) %>%
+  ggplot(aes(pressInsufTime, pct, fill = H_LDepbin)) +
+  geom_col(position = "dodge") +
+  geom_label(aes(label = paste0(round(pct,0),"%"), y = pct - pct/3), 
+            position = position_dodge(width = .9), 
+            size = 5, colour = "white", show.legend = FALSE) +
+  scale_fill_wsj() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme(legend.position = "top") +
+  labs(x = "Pressure experienced from insufficient time",
+       y = "",
+       fill = "",
+       caption = "8 values removed due to missing data\nLow deprivation n = 476\nHigh Deprivation n = 471") -> plot_1
+plot_1
+```
+
+```{r, eval=FALSE}
+ggsave("plots/plot_1.png", plot_1, width = 12, height = 9, dpi = 300)
+```
+
+```{r}
+gps %>% 
+  select(satJob, H_LDepbin) %>% 
+  group_by(H_LDepbin) %>% 
+  count(satJob) %>% 
+  filter(!is.na(H_LDepbin) & !is.na(satJob)) %>% 
+  mutate(pct = n/sum(n)*100) %>% 
+  ggplot(aes(fct_rev(satJob), pct, fill = H_LDepbin)) +
+  geom_col(position = "dodge") +
+  geom_label(aes(label = paste0(round(pct,0),"%"), y = pct - pct/3), 
+            position = position_dodge(width = .9), 
+            size = 5, colour = "white", show.legend = FALSE) +
+  scale_fill_wsj() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme(legend.position = "top") +
+  labs(x = "Overall Job Satisfaction",
+      y = "",
+      fill = "") -> plot_2
+plot_2
+```
+
+
+
+
+```{r}
+plot_3 <- 
+  gps %>%  
+  select(ID, gender, age) %>% 
+  mutate(age = age_group(age, by = 10),
+         gender = factor(gender, levels = c("male", "female"),
+                         labels = c("Male", "Female"))) %>% 
+  filter(!is.na(gender) & !is.na(age)) %>%
+  ggplot(aes(age, fill = gender)) +
+  geom_bar() +
+  scale_fill_wsj(guide = "none") +
+  facet_wrap(~gender) +
+  labs(x = "Age group",
+       y= "",
+       caption = "Excluding 164 records with missing data\ntotal n included = 2,301")
+plot_3
+```
+
+
+```{r}
+ggsave("plots/plot_3.png", plot_3, width = 12, height = 9, dpi = 300)
+```
+
+```{r}
+gps %>% 
+  select(starts_with("hours"), H_LDepbin) %>%
+  pivot_longer(hoursDirPatCare:hoursOther, names_to = "hours",
+               values_to = "values") %>% 
+  filter(!is.na(values) & !is.na(H_LDepbin))%>% 
+  ggplot(aes(hours, values, fill = H_LDepbin)) +
+  geom_boxplot() 
+```
+
+
+```{r}
+gps
+```
+
+
+
+
+
