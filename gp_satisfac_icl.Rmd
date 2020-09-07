@@ -142,6 +142,35 @@ plot_3
 ggsave("plots/plot_3.png", plot_3, width = 12, height = 9, dpi = 300)
 ```
 
+
+```{r}
+gps %>% 
+  select(leaveDirPatCar, H_LDepbin) %>% 
+  group_by(H_LDepbin) %>% 
+  count(leaveDirPatCar) %>% 
+  filter(!is.na(H_LDepbin) & !is.na(leaveDirPatCar)) %>% 
+  mutate(pct = n/sum(n)*100) %>%
+  ggplot(aes(leaveDirPatCar, pct, fill = H_LDepbin)) +
+  geom_col(position = "dodge") +
+  geom_label(aes(label = paste0(round(pct,0),"%"), y = pct - pct/3), 
+            position = position_dodge(width = .9), 
+            size = 5, colour = "white", show.legend = FALSE) +
+  scale_fill_wsj() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme(legend.position = "top") +
+  labs(x = "Intention to leave direct patient care",
+       y = "",
+       fill = "",
+       caption = "18 values removed due to missing data\nLow deprivation n = 471\nHigh Deprivation n = 466") -> plot_4
+plot_4
+```
+
+
+```{r}
+ggsave("plots/plot_4.png", plot_4, width = 12, height = 9, dpi = 300)
+```
+
 ```{r}
 gps %>% 
   select(starts_with("hours"), H_LDepbin) %>%
